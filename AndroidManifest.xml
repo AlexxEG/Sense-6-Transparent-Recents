@@ -18,7 +18,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="Show the status bar in Recent Apps screen on Sense 6. Also makes the status &amp; navigation bar transparent." />
+            android:value="Shows the status bar in Recent Apps screen on Sense 6. Also makes the status &amp; navigation bar transparent." />
         <meta-data
             android:name="xposedminversion"
             android:value="30" />
