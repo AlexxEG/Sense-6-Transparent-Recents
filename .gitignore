@@ -61,3 +61,10 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+
+# IntelliJ
+# =========================
+
+.idea/*.iws
+.idea/workspace.xml
+.idea/tasks.xml
