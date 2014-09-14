@@ -1,0 +1,111 @@
+package com.gmail.alexellingsen.sense6transparentrecents;
+
+import android.app.Activity;
+import android.content.res.Resources;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import de.robv.android.xposed.IXposedHookLoadPackage;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
+import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
+
+public class Sense6TransparentRecents implements IXposedHookLoadPackage {
+
+    public static final String PACKAGE = "com.android.systemui";
+    public static final String TAG = "Sense6TransparentRecents";
+
+    @Override
+    public void handleLoadPackage(LoadPackageParam lpparam) throws Throwable {
+        if (!lpparam.packageName.equals(PACKAGE))
+            return;
+
+        Class<?> findClass;
+
+        try {
+            findClass = XposedHelpers.findClass(
+                    PACKAGE + ".recent.RecentAppFxActivity",
+                    lpparam.classLoader
+            );
+        } catch (Throwable e) {
+            XposedBridge.log(e);
+            return;
+        }
+
+        XposedHelpers.findAndHookMethod(
+                findClass,
+                "onCreate",
+                android.os.Bundle.class,
+
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Activity thiz = (Activity) param.thisObject;
+
+                        // Show status bar
+                        thiz.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+                        // Enable translucent status bar
+                        thiz.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+
+                        // Get status bar height
+                        final int statusBarHeight = getStatusBarHeight(thiz.getResources());
+
+                        // Get the action bar view
+                        final View actionBarView = (View) XposedHelpers.getObjectField(thiz, "actionContainer");
+
+                        // Insert a new View to color the status bar & move action bar down
+                        View statusBarColor = new View(actionBarView.getContext());
+
+                        // Match action bar background, and set minimum height
+                        statusBarColor.setBackground(actionBarView.getBackground());
+                        statusBarColor.setMinimumHeight(statusBarHeight);
+
+                        // Insert view before action bar into parent
+                        ((ViewGroup) actionBarView.getParent()).addView(
+                                statusBarColor,
+                                0,
+                                new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, statusBarHeight)
+                        );
+
+                        // Enable translucent navigation bar
+                        thiz.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+
+                        // Get 3rd child view to fix bottom padding
+                        View background = ((ViewGroup) actionBarView.getParent()).getChildAt(2);
+
+                        // Get navigation bar height
+                        int navigationBarHeight = getNavigationBarHeight(thiz.getResources());
+
+                        // Increase the bottom padding by navigation bar height
+                        background.setPadding(
+                                background.getPaddingLeft(),
+                                background.getPaddingTop(),
+                                background.getPaddingRight(),
+                                background.getPaddingBottom() + navigationBarHeight
+                        );
+                    }
+                });
+
+        XposedBridge.log("[" + TAG + "] Hooked recent apps activity");
+    }
+
+    public int getNavigationBarHeight(Resources resources) {
+        int result = 0;
+        int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = resources.getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
+    public int getStatusBarHeight(Resources resources) {
+        int result = 0;
+        int resourceId = resources.getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = resources.getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+}
