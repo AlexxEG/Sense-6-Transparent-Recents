@@ -5,6 +5,7 @@ import android.content.res.Resources;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.LinearLayout;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -52,8 +53,20 @@ public class Sense6TransparentRecents implements IXposedHookLoadPackage {
                         // Get status bar height
                         final int statusBarHeight = getStatusBarHeight(thiz.getResources());
 
+                        View actionBarView;
+
                         // Get the action bar view
-                        final View actionBarView = (View) XposedHelpers.getObjectField(thiz, "actionContainer");
+                        try {
+                            // Try to get 'actionContainer' field. It will throw an NoSuchFieldError if it doesn't exists,
+                            // and if it doesn't try an alternative method.
+                            actionBarView = (View) XposedHelpers.getObjectField(thiz, "actionContainer");
+                        } catch (NoSuchFieldError e) {
+                            // Find root layout. ID is from decompiling SystemUI.apk
+                            LinearLayout rootLayout = (LinearLayout) thiz.findViewById(0x7f070044);
+
+                            // Get first child view
+                            actionBarView = rootLayout.getChildAt(0);
+                        }
 
                         // Insert a new View to color the status bar & move action bar down
                         View statusBarColor = new View(actionBarView.getContext());
