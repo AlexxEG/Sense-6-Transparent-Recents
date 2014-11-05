@@ -1,10 +1,9 @@
 package com.gmail.alexellingsen.sense6transparentrecents;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.Resources;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
+import android.view.*;
 import android.widget.LinearLayout;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -82,22 +81,25 @@ public class Sense6TransparentRecents implements IXposedHookLoadPackage {
                                 new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, statusBarHeight)
                         );
 
-                        // Enable translucent navigation bar
-                        thiz.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+                        // Check for navigation bar before making any changes.
+                        if (hasNavigationBar(thiz)) {
+                            // Enable translucent navigation bar
+                            thiz.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
 
-                        // Get 3rd child view to fix bottom padding
-                        View background = ((ViewGroup) actionBarView.getParent()).getChildAt(2);
+                            // Get 3rd child view to fix bottom padding
+                            View background = ((ViewGroup) actionBarView.getParent()).getChildAt(2);
 
-                        // Get navigation bar height
-                        int navigationBarHeight = getNavigationBarHeight(thiz.getResources());
+                            // Get navigation bar height
+                            int navigationBarHeight = getNavigationBarHeight(thiz.getResources());
 
-                        // Increase the bottom padding by navigation bar height
-                        background.setPadding(
-                                background.getPaddingLeft(),
-                                background.getPaddingTop(),
-                                background.getPaddingRight(),
-                                background.getPaddingBottom() + navigationBarHeight
-                        );
+                            // Increase the bottom padding by navigation bar height
+                            background.setPadding(
+                                    background.getPaddingLeft(),
+                                    background.getPaddingTop(),
+                                    background.getPaddingRight(),
+                                    background.getPaddingBottom() + navigationBarHeight
+                            );
+                        }
                     }
                 });
 
@@ -120,5 +122,12 @@ public class Sense6TransparentRecents implements IXposedHookLoadPackage {
             result = resources.getDimensionPixelSize(resourceId);
         }
         return result;
+    }
+
+    public boolean hasNavigationBar(Context context) {
+        boolean hasMenuKey = ViewConfiguration.get(context).hasPermanentMenuKey();
+        boolean hasBackKey = KeyCharacterMap.deviceHasKey(KeyEvent.KEYCODE_BACK);
+
+        return (!hasMenuKey && !hasBackKey);
     }
 }
